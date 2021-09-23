@@ -63,7 +63,6 @@ jobs:
 
         DOCKER_BUILDKIT=1 docker build \
           --target ${{ matrix.target }} \
-          --build-arg NODE_ENV=${{ env.BUILD_ENV }} \
           -t $IMAGE_URL \
           .
         docker push $IMAGE_URL

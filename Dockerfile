@@ -15,7 +15,6 @@ WORKDIR /workspace
 
 # Build
 FROM base as build
-ARG NODE_ENV
 COPY . /root/app
 WORKDIR /root/app
 RUN npm install && npm run build 
