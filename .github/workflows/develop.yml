@@ -9,7 +9,7 @@ env:
   AWS_REGION: ap-northeast-1
   AWS_ACCESS_KEY_ID: ${{ secrets.SIMPLE_COMMUNITY_DEV_AWS_ACCESS_KEY_ID }}
   AWS_SECRET_ACCESS_KEY: ${{ secrets.SIMPLE_COMMUNITY_DEV_AWS_SECRET_ACCESS_KEY }}
-  BUILD_ENV: develop
+  BUILD_ENV: development
   IMAGE_TAG: develop-${{ github.sha }}
   TASK_DEFINITION_FILE: simple-community-develop/app-community/task-definition.json
   DEPLOY_REPO_NAME: simple-community-deploy
@@ -63,7 +63,7 @@ jobs:
 
         DOCKER_BUILDKIT=1 docker build \
           --target ${{ matrix.target }} \
-          --build-arg ENV=${{ env.BUILD_ENV }} \
+          --build-arg NODE_ENV=${{ env.BUILD_ENV }} \
           -t $IMAGE_URL \
           .
         docker push $IMAGE_URL

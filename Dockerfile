@@ -15,24 +15,24 @@ WORKDIR /workspace
 
 # Build
 FROM base as build
-ARG ENV
+ARG NODE_ENV
 COPY . /root/app
 WORKDIR /root/app
-RUN npm install && npm run build -- --mode ${ENV}
+RUN npm install && npm run build 
  
-# Release (SPA)
-FROM debian:bullseye-slim as release-spa
-# Debianイメージのセキュリティアップデート
-# https://linuxsecurity.com/features/how-to-install-security-updates-in-ubuntu-debian
-RUN apt update && apt full-upgrade -y && apt autoremove -y && apt autoclean -y
-COPY ./nginx/nginx.conf /etc/nginx/nginx.conf
-COPY ./nginx/conf.d/default.conf /etc/nginx/conf.d/default.conf
-COPY --from=build /root/app/dist/ /var/www/html/public/
-CMD nginx -g 'daemon off;'
-EXPOSE 80
+# # Release (SPA)
+# FROM debian:bullseye-slim as release-spa
+# # Debianイメージのセキュリティアップデート
+# # https://linuxsecurity.com/features/how-to-install-security-updates-in-ubuntu-debian
+# RUN apt update && apt full-upgrade -y && apt autoremove -y && apt autoclean -y
+# COPY ./nginx/nginx.conf /etc/nginx/nginx.conf
+# COPY ./nginx/conf.d/default.conf /etc/nginx/conf.d/default.conf
+# COPY --from=build /root/app/dist/ /var/www/html/public/
+# CMD nginx -g 'daemon off;'
+# EXPOSE 80
 
-# # Release (SSR)
-# FROM gcr.io/distroless/nodejs-debian10 as release-ssr
-# COPY --from=build-env /app /app
-# WORKDIR /app
-# CMD ["hello.js"]
+# Release (SSR)
+FROM gcr.io/distroless/nodejs-debian10 as release
+COPY --from=build /root/app /app
+WORKDIR /app
+CMD ["yarn start"]

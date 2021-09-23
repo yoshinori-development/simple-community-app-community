@@ -18,6 +18,7 @@ import Typography from '@material-ui/core/Typography';
 import PersonIcon from '@material-ui/icons/Person';
 import { Auth } from '@aws-amplify/auth';
 import axios from 'axios'
+import { Error } from '@material-ui/icons';
 
 const useStyles = makeStyles((theme) => ({
   root: {
@@ -41,6 +42,11 @@ const axiosInstance = axios.create({
   }
 });
 
+interface Error {
+  nickname: string
+  age: string
+}
+
 const Home: NextPage = () => {
   const classes = useStyles();
   const [session, setSession] = useState(null)
@@ -49,7 +55,7 @@ const Home: NextPage = () => {
   const [profile, setProfile] = useState({});
   const [formProfileNickname, setFormProfileNickname] = useState("");
   const [formProfileAge, setFormProfileAge] = useState(0);
-  const [errors, setErrors] = useState({});
+  const [errors, setErrors] = useState({nickname: "", age: ""});
   const [message, setMassage] = useState("");
 
   useEffect(() => {
@@ -92,7 +98,7 @@ const Home: NextPage = () => {
       setErrors(err.response.data.errors)
       return
     }
-    setErrors({})
+    setErrors({nickname: "", age: ""})
   }
   
   // const handleClose = () => {
@@ -175,7 +181,7 @@ const Home: NextPage = () => {
                 value={formProfileNickname} 
                 label="Nickname" 
                 error={'nickname' in errors} 
-                helperText={errors.nickname}
+                helperText={errors.nickname || null}
                 onChange={(e) => { setFormProfileNickname(e.target.value) }} 
               />
             </div>
@@ -185,7 +191,7 @@ const Home: NextPage = () => {
                 value={formProfileAge} 
                 label="Age" 
                 error={'age' in errors} 
-                helperText={errors.age}
+                helperText={errors.age || null}
                 onChange={(e) => { 
                   const numVal = Number(e.target.value)
                   if (!isNaN(numVal)) {
