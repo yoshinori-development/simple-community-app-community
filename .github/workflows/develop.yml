@@ -1,0 +1,106 @@
+on:
+  push:
+    branches: 
+    - develop
+
+name: BuildProcess
+
+env:
+  AWS_REGION: ap-northeast-1
+  AWS_ACCESS_KEY_ID: ${{ secrets.SIMPLE_COMMUNITY_DEV_AWS_ACCESS_KEY_ID }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.SIMPLE_COMMUNITY_DEV_AWS_SECRET_ACCESS_KEY }}
+  BUILD_ENV: develop
+  IMAGE_TAG: develop-${{ github.sha }}
+  TASK_DEFINITION_FILE: simple-community-develop/app-community/task-definition.json
+  DEPLOY_REPO_NAME: simple-community-deploy
+  DEPLOY_REPO_REF: refs/heads/develop
+  GIT_USER_NAME: Deploy
+  GIT_USER_EMAIL: yoshinori.satoh.tokyo@gmail.com
+  SLACK_WEBHOOK: ${{ secrets.SIMPLE_COMMUNITY_DEV_SLACK_WEBHOOK }}
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+
+    outputs:
+      status: ${{ job.status }}
+
+    strategy:
+      matrix:
+        target: [release]
+        include: 
+        - target: release
+          ecr_repositories: simple-community-app-community
+          container_name: app
+
+    steps:        
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: Login to ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v1
+
+    - name: Build, tag, and push image to ECR
+      id: build
+      # 同じイメージタグを再度pushしないため、既にこのコミットのgit.shaのタグが付けられたイメージが存在していればスキップ
+      run: |
+        IMAGE_URL=${{ steps.login-ecr.outputs.registry }}/${{ matrix.ecr_repositories }}:${{ env.IMAGE_TAG }}
+        docker pull $IMAGE_URL && true
+        if [ "`docker image ls -q $IMAGE_URL`" ]; then
+          echo "Image $IMAGE_URL already exist."
+          echo "Skip build and push image."
+          exit 0
+        fi
+
+        DOCKER_BUILDKIT=1 docker build \
+          --target ${{ matrix.target }} \
+          --build-arg ENV=${{ env.BUILD_ENV }} \
+          -t $IMAGE_URL \
+          .
+        docker push $IMAGE_URL
+
+    - name: Checkout
+      uses: actions/checkout@v2
+      with:
+        repositories: ${{ github.repositories_owner }}/${{ env.DEPLOY_REPO_NAME }}
+        ref: ${{ env.DEPLOY_REPO_REF }}
+        token: ${{ secrets.DEPLOY_PERSONAL_ACCESS_TOKEN }}
+
+    - name: Fill in the new api image ID in the ECS task definition
+      id: task-def-api
+      uses: aws-actions/amazon-ecs-render-task-definition@v1
+      with:
+        task-definition: ${{ env.TASK_DEFINITION_FILE }}
+        container-name: ${{ matrix.container_name }}
+        image: ${{ steps.login-ecr.outputs.registry }}/${{ matrix.ecr_repositories }}:${{ github.sha }}
+
+    - name: git push
+      id: git-push
+      run: |
+        cp ${{ steps.task-def-api.outputs.task-definition }} ${{ env.TASK_DEFINITION_FILE }}
+        git config --local user.email ${{ env.GIT_USER_EMAIL }}
+        git config --local user.name ${{ env.GIT_USER_NAME }}
+        git branch
+        git add ${{ env.TASK_DEFINITION_FILE }}
+        git commit -m "[UpdateImageTag] ${{ github.event.repositories.name }} $GITHUB_SHA"
+        git push
+
+  slackNotification:
+    if: always()
+    needs: [build]
+    name: workflow notification to slack
+    runs-on: ubuntu-latest
+    steps:
+      - uses: Gamesight/slack-workflow-status@master
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          slack_webhook_url: ${{ env.SLACK_WEBHOOK }}
