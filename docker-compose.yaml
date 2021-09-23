@@ -1,0 +1,18 @@
+version: '3.8'
+services:
+  app:
+    build:
+      context: .
+      target: workspace
+    image: sc-app-community:workspace
+    working_dir: /workspace
+    ports:
+    - 3000:3000
+    volumes:
+      - .:/workspace
+      - node-modules:/workspace/node_modules
+      - ~/.ssh:/root/.ssh
+      - ~/.aws:/root/.aws
+
+volumes:
+  node-modules:
