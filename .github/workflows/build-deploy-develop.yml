@@ -97,7 +97,7 @@ jobs:
     - name: update-task-definitions
       id: update-task-definitions
       env: 
-        TARGET_RELEASE_ECR_REPOSITORY: simple-community-apo-community
+        TARGET_RELEASE_ECR_REPOSITORY: simple-community-app-community
         TARGET_RELEASE_CONTAINER_NAME: app
       run: |
         # [Target]: release
