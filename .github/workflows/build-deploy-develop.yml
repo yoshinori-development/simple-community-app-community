@@ -102,8 +102,6 @@ jobs:
       run: |
         # [Target]: release
         image=${{ steps.login-ecr.outputs.registry }}/${{ env.TARGET_RELEASE_ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}
-        echo ${{ env.TARGET_RELEASE_ECR_REPOSITORY }}
-        echo $TARGET_RELEASE_ECR_REPOSITORY 
         cat ${{ env.TASK_DEFINITION_FILE }} \
         | jq --arg image $image 'select(.containerDefinitions[].name == "${{ env.TARGET_RELEASE_CONTAINER_NAME }}").containerDefinitions[].image |= $image' \
         > tmp
@@ -116,6 +114,8 @@ jobs:
         git config --local user.email ${{ env.GIT_USER_EMAIL }}
         git config --local user.name ${{ env.GIT_USER_NAME }}
         git branch
+        ls -l ${{ env.TASK_DEFINITION_FILE }}
+        cat ${{ env.TASK_DEFINITION_FILE }}
         git add ${{ env.TASK_DEFINITION_FILE }}
         git commit -m "[UpdateImageTag] ${{ github.event.repositories.name }} $GITHUB_SHA"
         git push
