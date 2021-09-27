@@ -1,9 +1,11 @@
 on:
   push:
     branches: 
-    - develop
+    - main
+    tags:
+    - 'apply-develop-*'
 
-name: develop
+name: Build and deploy develop
 
 env:
   AWS_REGION: ap-northeast-1
