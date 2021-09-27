@@ -11,7 +11,7 @@ env:
   AWS_REGION: ap-northeast-1
   AWS_ROLE_ARN: arn:aws:iam::858884198044:role/github_deployment_develop
   IMAGE_TAG: develop-${{ github.sha }}
-  TASK_DEFINITION_FILE: develop/app-community/task-definition.json
+  TASK_DEFINITION_FILE: develop/api-main/task-definition.json
   DEPLOY_REPO_NAME: simple-community-deploy
   DEPLOY_REPO_REF: refs/heads/main
   GIT_USER_NAME: Deploy
@@ -31,7 +31,7 @@ jobs:
       matrix: # ビルドターゲットが増えたらmatrixを追従する
         include: 
         - target: release
-          ecr_repository: simple-community-app-community
+          ecr_repository: simple-community-api-main
     steps:        
     - name: Checkout
       uses: actions/checkout@v2
