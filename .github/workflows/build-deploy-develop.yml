@@ -31,7 +31,7 @@ jobs:
       matrix: # ビルドターゲットが増えたらmatrixを追従する
         include: 
         - target: release
-          ecr_repository: simple-community-api-main
+          ecr_repository: simple-community-app-community
     steps:        
     - name: Checkout
       uses: actions/checkout@v2
@@ -97,8 +97,8 @@ jobs:
     - name: update-task-definitions
       id: update-task-definitions
       env: 
-        TARGET_RELEASE_ECR_REPOSITORY: simple-community-api-main
-        TARGET_RELEASE_CONTAINER_NAME: api
+        TARGET_RELEASE_ECR_REPOSITORY: simple-community-apo-community
+        TARGET_RELEASE_CONTAINER_NAME: app
       run: |
         # [Target]: release
         image=${{ steps.login-ecr.outputs.registry }}/${{ env.TARGET_RELEASE_ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}
