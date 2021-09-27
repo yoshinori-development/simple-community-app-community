@@ -102,10 +102,13 @@ jobs:
       run: |
         # [Target]: release
         image=${{ steps.login-ecr.outputs.registry }}/${{ env.TARGET_RELEASE_ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}
+        echo ${{ env.TARGET_RELEASE_ECR_REPOSITORY }}
+        echo $TARGET_RELEASE_ECR_REPOSITORY 
         cat ${{ env.TASK_DEFINITION_FILE }} \
         | jq --arg image $image 'select(.containerDefinitions[].name == "${{ env.TARGET_RELEASE_CONTAINER_NAME }}").containerDefinitions[].image |= $image' \
         > tmp
         mv tmp ${{ env.TASK_DEFINITION_FILE }}
+        cat ${{ env.TASK_DEFINITION_FILE }}
 
     - name: git push
       id: git-push
