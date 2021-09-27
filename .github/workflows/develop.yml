@@ -3,15 +3,13 @@ on:
     branches: 
     - develop
 
-name: BuildProcess
+name: develop
 
 env:
   AWS_REGION: ap-northeast-1
-  AWS_ACCESS_KEY_ID: ${{ secrets.SIMPLE_COMMUNITY_DEV_AWS_ACCESS_KEY_ID }}
-  AWS_SECRET_ACCESS_KEY: ${{ secrets.SIMPLE_COMMUNITY_DEV_AWS_SECRET_ACCESS_KEY }}
-  BUILD_ENV: development
+  AWS_ROLE_ARN: arn:aws:iam::858884198044:role/github_deployment_develop
   IMAGE_TAG: develop-${{ github.sha }}
-  TASK_DEFINITION_FILE: simple-community-develop/app-community/task-definition.json
+  TASK_DEFINITION_FILE: develop/app-community/task-definition.json
   DEPLOY_REPO_NAME: simple-community-deploy
   DEPLOY_REPO_REF: refs/heads/develop
   GIT_USER_NAME: Deploy
@@ -22,28 +20,25 @@ jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
-
+    permissions:
+      id-token: write
+      contents: read
     outputs:
       status: ${{ job.status }}
-
     strategy:
-      matrix:
-        target: [release]
+      matrix: # ビルドターゲットが増えたらmatrixを追従する
         include: 
         - target: release
-          ecr_repositories: simple-community-app-community
-          container_name: app
-
+          ecr_repository: simple-community-api-main
     steps:        
     - name: Checkout
       uses: actions/checkout@v2
 
-    - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v1
-      with:
-        aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
-        aws-region: ${{ env.AWS_REGION }}
+    - name: Configure AWS Credentials
+      uses: yoshinori-development/simple-community-actions-aws-creds@v1
+      with: 
+        aws_role_arn: ${{ inputs.aws_role_arn }}
+        aws_region: ${{ inputs.aws_region }}
 
     - name: Login to ECR
       id: login-ecr
@@ -51,9 +46,10 @@ jobs:
 
     - name: Build, tag, and push image to ECR
       id: build
-      # 同じイメージタグを再度pushしないため、既にこのコミットのgit.shaのタグが付けられたイメージが存在していればスキップ
+      shell: bash
       run: |
-        IMAGE_URL=${{ steps.login-ecr.outputs.registry }}/${{ matrix.ecr_repositories }}:${{ env.IMAGE_TAG }}
+        # 同じイメージタグを再度pushしないため、既にこのコミットのgit.shaのタグが付けられたイメージが存在していればスキップ
+        IMAGE_URL=${{ steps.login-ecr.outputs.registry }}/${{ inputs.ecr_repository }}:${{ inputs.image_tag }}
         docker pull $IMAGE_URL && true
         if [ "`docker image ls -q $IMAGE_URL`" ]; then
           echo "Image $IMAGE_URL already exist."
@@ -61,31 +57,57 @@ jobs:
           exit 0
         fi
 
+        # ビルド & プッシュ
         DOCKER_BUILDKIT=1 docker build \
-          --target ${{ matrix.target }} \
+          --target ${{ inputs.build_target }} \
           -t $IMAGE_URL \
           .
         docker push $IMAGE_URL
 
+  updateTaskDefinitions:
+    name: UpdateTaskDefinitions
+    needs: [build]
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    outputs:
+      status: ${{ job.status }}
+    steps:        
+    - name: Configure AWS Credentials
+      uses: yoshinori-development/simple-community-actions-aws-creds@v1
+      with: 
+        aws_role_arn: ${{ env.AWS_ROLE_ARN }}
+        aws_region: ${{ env.AWS_REGION }}
+
+    - name: Login to ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v1
+
     - name: Checkout
       uses: actions/checkout@v2
       with:
-        repositories: ${{ github.repositories_owner }}/${{ env.DEPLOY_REPO_NAME }}
+        repository: ${{ github.repository_owner }}/${{ env.DEPLOY_REPO_NAME }}
         ref: ${{ env.DEPLOY_REPO_REF }}
         token: ${{ secrets.DEPLOY_PERSONAL_ACCESS_TOKEN }}
 
-    - name: Fill in the new api image ID in the ECS task definition
-      id: task-def-api
-      uses: aws-actions/amazon-ecs-render-task-definition@v1
-      with:
-        task-definition: ${{ env.TASK_DEFINITION_FILE }}
-        container-name: ${{ matrix.container_name }}
-        image: ${{ steps.login-ecr.outputs.registry }}/${{ matrix.ecr_repositories }}:${{ github.sha }}
+    # ビルドターゲットが増えたらここのタスク定義書き換えを追従する
+    - name: update-task-definitions
+      id: update-task-definitions
+      env: 
+        TARGET_RELEASE_ECR_REPOSITORY: simple-community-api-main
+        TARGET_RELEASE_CONTAINER_NAME: api
+      run: |
+        # [Target]: release
+        image=${{ steps.login-ecr.outputs.registry }}/${{ env.TARGET_RELEASE_ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}
+        cat ${{ env.TASK_DEFINITION_FILE }} \
+        | jq --arg image $image 'select(.containerDefinitions[].name == "${{ env.TARGET_RELEASE_CONTAINER_NAME }}").containerDefinitions[].image |= $image' \
+        > tmp
+        mv tmp ${{ env.TASK_DEFINITION_FILE }}
 
     - name: git push
       id: git-push
       run: |
-        cp ${{ steps.task-def-api.outputs.task-definition }} ${{ env.TASK_DEFINITION_FILE }}
         git config --local user.email ${{ env.GIT_USER_EMAIL }}
         git config --local user.name ${{ env.GIT_USER_NAME }}
         git branch
