@@ -17,7 +17,7 @@ WORKDIR /workspace
 FROM base as build
 COPY . /root/app
 WORKDIR /root/app
-RUN npm install && npm run build 
+RUN yarn && yarn build 
  
 # # Release (SPA)
 # FROM debian:bullseye-slim as release-spa
@@ -34,4 +34,5 @@ RUN npm install && npm run build
 FROM gcr.io/distroless/nodejs-debian10 as release
 COPY --from=build /root/app /app
 WORKDIR /app
-CMD ["next start"]
+RUN ls -l
+CMD ["./node_modules/next/dist/bin/next start"]
