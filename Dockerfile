@@ -34,4 +34,4 @@ RUN npm install && npm run build
 FROM gcr.io/distroless/nodejs-debian10 as release
 COPY --from=build /root/app /app
 WORKDIR /app
-CMD ["yarn start"]
+CMD ["next start"]
