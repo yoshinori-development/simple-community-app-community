@@ -13,7 +13,7 @@ env:
   IMAGE_TAG: develop-${{ github.sha }}
   TASK_DEFINITION_FILE: develop/app-community/task-definition.json
   DEPLOY_REPO_NAME: simple-community-deploy
-  DEPLOY_REPO_REF: refs/heads/develop
+  DEPLOY_REPO_REF: refs/heads/main
   GIT_USER_NAME: Deploy
   GIT_USER_EMAIL: yoshinori.satoh.tokyo@gmail.com
   SLACK_WEBHOOK: ${{ secrets.SIMPLE_COMMUNITY_DEV_SLACK_WEBHOOK }}
