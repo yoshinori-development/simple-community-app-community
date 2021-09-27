@@ -34,5 +34,4 @@ RUN yarn && yarn build
 FROM gcr.io/distroless/nodejs-debian10 as release
 COPY --from=build /root/app /app
 WORKDIR /app
-RUN ls -l
 CMD ["./node_modules/next/dist/bin/next start"]
