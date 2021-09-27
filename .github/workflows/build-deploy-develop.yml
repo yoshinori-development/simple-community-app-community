@@ -39,8 +39,8 @@ jobs:
     - name: Configure AWS Credentials
       uses: yoshinori-development/simple-community-actions-aws-creds@v1
       with: 
-        aws_role_arn: ${{ inputs.aws_role_arn }}
-        aws_region: ${{ inputs.aws_region }}
+        aws_role_arn: ${{ env.AWS_ROLE_ARN }}
+        aws_region: ${{ env.AWS_REGION }}
 
     - name: Login to ECR
       id: login-ecr
