@@ -11,7 +11,7 @@ env:
   AWS_REGION: ap-northeast-1
   AWS_ROLE_ARN: arn:aws:iam::858884198044:role/github_deployment_develop
   IMAGE_TAG: develop-${{ github.sha }}
-  TASK_DEFINITION_FILE: develop/app-community/task-definition.json
+  TASK_DEFINITION_FILE: simple-community-develop/app-community/task-definition.json
   DEPLOY_REPO_NAME: simple-community-deploy
   DEPLOY_REPO_REF: refs/heads/main
   GIT_USER_NAME: Deploy
