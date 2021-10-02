@@ -55,7 +55,8 @@ const Home: NextPage = () => {
   const [profile, setProfile] = useState({});
   const [formProfileNickname, setFormProfileNickname] = useState("");
   const [formProfileAge, setFormProfileAge] = useState(0);
-  const [errors, setErrors] = useState({nickname: "", age: ""});
+  const [validationErrors, setValidationErrors] = useState({nickname: "", age: ""});
+  const [errors, setErrors] = useState([]);
   const [message, setMassage] = useState("");
 
   useEffect(() => {
@@ -68,7 +69,7 @@ const Home: NextPage = () => {
     try {
       res = await axiosInstance.get('announcements')
     } catch (err) {
-      setErrors(err.response.data.errors)
+      setValidationErrors(err.response.data.errors)
       return
     }
     setAnnouncements(res.data)
@@ -79,7 +80,7 @@ const Home: NextPage = () => {
     try {
       res = await axiosInstance.get('profile')
     } catch (err) {
-      setErrors(err.response.data.errors)
+      handleError(err)
       return
     }
     setProfile(res.data)
@@ -95,18 +96,30 @@ const Home: NextPage = () => {
         age: formProfileAge,
       })
     } catch (err) {
-      setErrors(err.response.data.errors)
+      handleError(err)
       return
     }
-    setErrors({nickname: "", age: ""})
+    setValidationErrors({nickname: "", age: ""})
   }
   
-  // const handleClose = () => {
-  //   setErrors({})
-  // }
+  const handleError = (err) => {
+    if (!err.response.data.type) {
+      return
+    }
+
+    if (err.response.data.type == "validation") {
+      setValidationErrors(err.response.data.error)
+    } else if (err.response.data.type == "message") {
+      setErrors([err.response.data.error])
+    }
+  }
   
   const handleCloseMessage = () => {
     setMassage("")
+  }
+
+  const handleClose = () => {
+    setErrors([])
   }
 
   const login = () => {
@@ -146,11 +159,11 @@ const Home: NextPage = () => {
         </Toolbar>
       </AppBar>
       
-      {/* <Snackbar open={errors && errors.length > 0} autoHideDuration={10000} onClose={handleClose}>
+      <Snackbar open={errors && errors.length > 0} autoHideDuration={10000} onClose={handleClose}>
         <Alert onClose={handleClose} severity="error">
           {errors.map(error => <div>{error}</div>)}
         </Alert>
-      </Snackbar> */}
+      </Snackbar>
 
       <Snackbar open={message.length > 0} autoHideDuration={10000} onClose={handleCloseMessage}>
         <Alert onClose={handleCloseMessage} severity="error">
@@ -168,7 +181,8 @@ const Home: NextPage = () => {
               {announcements.map(announcement => (
                 <li key={announcement.ID}>{JSON.stringify(announcement)}</li>
               ))}
-            </ul> : null
+            </ul> : 
+            <div>お知らせはありません</div>
           } 
         </Box>
 
@@ -180,8 +194,8 @@ const Home: NextPage = () => {
                 id="profile-nickname" 
                 value={formProfileNickname} 
                 label="Nickname" 
-                error={'nickname' in errors} 
-                helperText={errors.nickname || null}
+                error={validationErrors.nickname && validationErrors.nickname != ""} 
+                helperText={validationErrors.nickname || null}
                 onChange={(e) => { setFormProfileNickname(e.target.value) }} 
               />
             </div>
@@ -190,8 +204,8 @@ const Home: NextPage = () => {
                 id="profile-age" 
                 value={formProfileAge} 
                 label="Age" 
-                error={'age' in errors} 
-                helperText={errors.age || null}
+                error={validationErrors.age && validationErrors.age != ""} 
+                helperText={validationErrors.age || null}
                 onChange={(e) => { 
                   const numVal = Number(e.target.value)
                   if (!isNaN(numVal)) {
