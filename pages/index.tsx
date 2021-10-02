@@ -161,7 +161,7 @@ const Home: NextPage = () => {
       
       <Snackbar open={errors && errors.length > 0} autoHideDuration={10000} onClose={handleClose}>
         <Alert onClose={handleClose} severity="error">
-          {errors.map(error => <div>{error}</div>)}
+          {errors.map(error => <div key={error}>{error}</div>)}
         </Alert>
       </Snackbar>
 
