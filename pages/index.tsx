@@ -123,8 +123,7 @@ const Home: NextPage = () => {
   }
 
   const login = () => {
-    window.location.href = "https://user-pool-domain/oauth2/idpresponse"
-    // Auth.federatedSignIn();
+    Auth.federatedSignIn();
   }
 
   const logout = () => {
